@@ -12,30 +12,31 @@ function Courses() {
 
   // ================= COURSE IMAGES =================
   const courseImages = {
-  1: "/images/course1.jpg",
-  2: "/images/course2.jpg",
-  3: "/images/course3.jpg",
-  4: "/images/course4.jpg",
-  5: "/images/course5.jpg",
-  6: "/images/course6.jpg",
-};
+    1: "/images/course1.jpg",
+    2: "/images/course2.jpg",
+    3: "/images/course3.jpg",
+    4: "/images/course4.jpg",
+    5: "/images/course5.jpg",
+    6: "/images/course6.jpg",
+  };
 
+  // Fallback image
   const FALLBACK_IMAGE =
     "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80";
 
-  // ================= GET IMAGE =================
+  // ================= GET COURSE IMAGE =================
   const getCourseImage = (course) => {
-    return courseImages[course.id] || FALLBACK_IMAGE;
+    return courseImages[course?.id] || FALLBACK_IMAGE;
   };
 
-  // ================= LOAD DATA =================
+  // ================= LOAD COURSES + CATEGORIES =================
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError("");
 
-        // ================= COURSES API =================
+        // ================= COURSES =================
         const courseResponse = await fetch(
           `${API_BASE_URL}/api/courses/courses/`
         );
@@ -52,7 +53,15 @@ function Courses() {
 
         let courseList = [];
 
-        // API response: { value: [...], Count: 6 }
+        /*
+          Backend response:
+
+          {
+            value: [...],
+            Count: 6
+          }
+        */
+
         if (Array.isArray(courseData)) {
           courseList = courseData;
         } else if (Array.isArray(courseData.value)) {
@@ -63,7 +72,7 @@ function Courses() {
 
         setCourses(courseList);
 
-        // ================= CATEGORIES API =================
+        // ================= CATEGORIES =================
         try {
           const categoryResponse = await fetch(
             `${API_BASE_URL}/api/courses/categories/`
@@ -102,7 +111,10 @@ function Courses() {
       } catch (err) {
         console.error("Error loading courses:", err);
 
-        setError("Unable to load courses");
+        setError(
+          "Unable to load courses. Please try again."
+        );
+
         setCourses([]);
       } finally {
         setLoading(false);
@@ -112,7 +124,7 @@ function Courses() {
     loadData();
   }, []);
 
-  // ================= SEARCH + CATEGORY =================
+  // ================= SEARCH + CATEGORY FILTER =================
   const filteredCourses = courses.filter((course) => {
     const search = searchTerm.toLowerCase().trim();
 
@@ -143,7 +155,7 @@ function Courses() {
     );
   }
 
-  // ================= UI =================
+  // ================= MAIN UI =================
   return (
     <div className="container page-padding">
 
@@ -223,7 +235,7 @@ function Courses() {
         </div>
       )}
 
-      {/* ================= EMPTY ================= */}
+      {/* ================= NO COURSES ================= */}
       {filteredCourses.length === 0 ? (
 
         <div className="empty-state">
@@ -283,7 +295,7 @@ function Courses() {
 
               </div>
 
-              {/* ================= BODY ================= */}
+              {/* ================= COURSE BODY ================= */}
               <div className="card-body">
 
                 {/* TITLE */}
@@ -295,8 +307,7 @@ function Courses() {
                 {/* DESCRIPTION */}
                 <p className="card-desc">
                   {course.description
-                    ? course.description.length >
-                      100
+                    ? course.description.length > 100
                       ? course.description.substring(
                           0,
                           100
@@ -315,15 +326,13 @@ function Courses() {
 
                   <span>
                     👥{" "}
-                    {course.students_count ||
-                      0}{" "}
+                    {course.students_count || 0}{" "}
                     students
                   </span>
 
                   <span>
                     ⏱️{" "}
-                    {course.duration ||
-                      "N/A"}
+                    {course.duration || "N/A"}
                   </span>
 
                 </div>
@@ -354,7 +363,6 @@ function Courses() {
           ))}
 
         </div>
-
       )}
 
     </div>
