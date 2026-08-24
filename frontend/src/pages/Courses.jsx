@@ -10,8 +10,6 @@ function Courses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ================= COURSE IMAGES =================
-  // Images are inside frontend/public/images/
   const courseImages = {
     1: "/images/course1.png",
     2: "/images/course2.png",
@@ -21,23 +19,24 @@ function Courses() {
     6: "/images/course6.png",
   };
 
-  // Fallback image
-  const FALLBACK_IMAGE =
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80";
+  const FALLBACK_IMAGE = "/images/course1.png";
 
-  // Get image based on course ID
   const getCourseImage = (course) => {
-    return courseImages[course?.id] || FALLBACK_IMAGE;
+    const image = courseImages[course?.id];
+
+    if (image) {
+      return image;
+    }
+
+    return FALLBACK_IMAGE;
   };
 
-  // ================= LOAD COURSES + CATEGORIES =================
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError("");
 
-        // ================= COURSES API =================
         const courseResponse = await fetch(
           `${API_BASE_URL}/api/courses/courses/`
         );
@@ -64,15 +63,13 @@ function Courses() {
 
         setCourses(courseList);
 
-        // ================= CATEGORIES API =================
         try {
           const categoryResponse = await fetch(
             `${API_BASE_URL}/api/courses/categories/`
           );
 
           if (categoryResponse.ok) {
-            const categoryData =
-              await categoryResponse.json();
+            const categoryData = await categoryResponse.json();
 
             console.log(
               "Categories API Response:",
@@ -83,13 +80,9 @@ function Courses() {
 
             if (Array.isArray(categoryData)) {
               categoryList = categoryData;
-            } else if (
-              Array.isArray(categoryData.value)
-            ) {
+            } else if (Array.isArray(categoryData.value)) {
               categoryList = categoryData.value;
-            } else if (
-              Array.isArray(categoryData.results)
-            ) {
+            } else if (Array.isArray(categoryData.results)) {
               categoryList = categoryData.results;
             }
 
@@ -106,10 +99,7 @@ function Courses() {
           setCategories([]);
         }
       } catch (err) {
-        console.error(
-          "Error loading courses:",
-          err
-        );
+        console.error("Error loading courses:", err);
 
         setError(
           "Unable to load courses. Please try again."
@@ -124,37 +114,27 @@ function Courses() {
     loadData();
   }, []);
 
-  // ================= SEARCH + CATEGORY FILTER =================
-  const filteredCourses = courses.filter(
-    (course) => {
-      const search =
-        searchTerm.toLowerCase().trim();
+  const filteredCourses = courses.filter((course) => {
+    const search = searchTerm.toLowerCase().trim();
 
-      const title = (
-        course.title || ""
-      ).toLowerCase();
+    const title = (course.title || "").toLowerCase();
 
-      const description = (
-        course.description || ""
-      ).toLowerCase();
+    const description = (
+      course.description || ""
+    ).toLowerCase();
 
-      const matchesSearch =
-        title.includes(search) ||
-        description.includes(search);
+    const matchesSearch =
+      title.includes(search) ||
+      description.includes(search);
 
-      const matchesCategory =
-        selectedCategory === "All" ||
-        String(course.category) ===
-          String(selectedCategory);
+    const matchesCategory =
+      selectedCategory === "All" ||
+      String(course.category) ===
+        String(selectedCategory);
 
-      return (
-        matchesSearch &&
-        matchesCategory
-      );
-    }
-  );
+    return matchesSearch && matchesCategory;
+  });
 
-  // ================= LOADING =================
   if (loading) {
     return (
       <div className="container page-padding text-center">
@@ -163,11 +143,9 @@ function Courses() {
     );
   }
 
-  // ================= MAIN UI =================
   return (
     <div className="container page-padding">
 
-      {/* ================= HEADER ================= */}
       <div className="catalog-header">
 
         <h1>Explore Online Courses</h1>
@@ -177,7 +155,6 @@ function Courses() {
           by industry experts
         </p>
 
-        {/* ================= FILTER BAR ================= */}
         <div className="filter-bar">
 
           <input
@@ -214,14 +191,12 @@ function Courses() {
         </div>
       </div>
 
-      {/* ================= ERROR ================= */}
       {error && (
         <div className="auth-error">
           {error}
         </div>
       )}
 
-      {/* ================= COURSE COUNT ================= */}
       {!error && courses.length > 0 && (
         <div
           style={{
@@ -230,18 +205,13 @@ function Courses() {
           }}
         >
           Showing{" "}
-          <strong>
-            {filteredCourses.length}
-          </strong>{" "}
+          <strong>{filteredCourses.length}</strong>{" "}
           of{" "}
-          <strong>
-            {courses.length}
-          </strong>{" "}
+          <strong>{courses.length}</strong>{" "}
           courses
         </div>
       )}
 
-      {/* ================= NO COURSES ================= */}
       {filteredCourses.length === 0 ? (
 
         <div className="empty-state">
@@ -262,7 +232,6 @@ function Courses() {
 
       ) : (
 
-        /* ================= COURSE GRID ================= */
         <div className="courses-grid">
 
           {filteredCourses.map((course) => (
@@ -272,16 +241,20 @@ function Courses() {
               className="course-card"
             >
 
-              {/* ================= COURSE IMAGE ================= */}
               <div className="card-media">
 
                 <img
                   src={getCourseImage(course)}
                   alt={
-                    course.title ||
-                    "Course image"
+                    course.title || "Course image"
                   }
                   loading="lazy"
+                  style={{
+                    width: "100%",
+                    height: "220px",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src =
@@ -289,7 +262,6 @@ function Courses() {
                   }}
                 />
 
-                {/* Level */}
                 <span className="level-badge">
                   {course.level
                     ? course.level
@@ -301,16 +273,13 @@ function Courses() {
 
               </div>
 
-              {/* ================= COURSE BODY ================= */}
               <div className="card-body">
 
-                {/* Title */}
                 <h3 className="card-title">
                   {course.title ||
                     "Untitled Course"}
                 </h3>
 
-                {/* Description */}
                 <p className="card-desc">
                   {course.description
                     ? course.description.length > 100
@@ -322,12 +291,10 @@ function Courses() {
                     : "Learn practical skills with this comprehensive online course."}
                 </p>
 
-                {/* ================= COURSE STATS ================= */}
                 <div className="card-stats">
 
                   <span>
-                    ⭐{" "}
-                    {course.rating || "4.5"}
+                    ⭐ {course.rating || "4.5"}
                   </span>
 
                   <span>
@@ -343,12 +310,10 @@ function Courses() {
 
                 </div>
 
-                {/* ================= FOOTER ================= */}
                 <div className="card-footer-row">
 
                   <span className="price font-bold">
-                    Rs.{" "}
-                    {course.price || "0"}
+                    Rs. {course.price || "0"}
                   </span>
 
                   <Link
