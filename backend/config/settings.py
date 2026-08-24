@@ -8,6 +8,7 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 # =========================================================
 # SECURITY
 # =========================================================
@@ -21,12 +22,14 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ["*"]
 
+
 # =========================================================
 # MEDIA
 # =========================================================
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 
 # =========================================================
 # STATIC
@@ -39,12 +42,14 @@ STATICFILES_DIRS = [
     BASE_DIR.parent / "frontend" / "dist" / "assets"
 ]
 
+
 # =========================================================
 # CORS
 # =========================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
 
 # =========================================================
 # CSRF
@@ -55,15 +60,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://online-course-project.onrender.com",
     "https://online-course-frontend-n4v8.onrender.com",
     "https://online-course-project-adpn.onrender.com",
 ]
+
 
 # =========================================================
 # CUSTOM USER
 # =========================================================
 
 AUTH_USER_MODEL = "accounts.User"
+
 
 # =========================================================
 # APPS
@@ -86,6 +94,7 @@ INSTALLED_APPS = [
     "payments",
 ]
 
+
 # =========================================================
 # MIDDLEWARE
 # =========================================================
@@ -101,11 +110,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
 # =========================================================
 # URL
 # =========================================================
 
 ROOT_URLCONF = "config.urls"
+
 
 # =========================================================
 # TEMPLATES
@@ -128,22 +139,36 @@ TEMPLATES = [
     },
 ]
 
+
 # =========================================================
 # WSGI
 # =========================================================
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+
 # =========================================================
 # DATABASE
 # =========================================================
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
-}
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
 
 # =========================================================
 # PASSWORD VALIDATION
@@ -168,6 +193,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # =========================================================
 # INTERNATIONALIZATION
 # =========================================================
@@ -178,6 +204,7 @@ TIME_ZONE = "UTC"
 
 USE_I18N = True
 USE_TZ = True
+
 
 # =========================================================
 # DEFAULT PRIMARY KEY
