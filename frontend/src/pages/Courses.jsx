@@ -12,13 +12,13 @@ function Courses() {
 
   // ================= COURSE IMAGES =================
   const courseImages = {
-    1: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",
-    2: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80",
-    3: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80",
-    4: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",
-    5: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
-    6: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=800&q=80",
-  };
+  1: "/images/course1.jpg",
+  2: "/images/course2.jpg",
+  3: "/images/course3.jpg",
+  4: "/images/course4.jpg",
+  5: "/images/course5.jpg",
+  6: "/images/course6.jpg",
+};
 
   const FALLBACK_IMAGE =
     "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80";
