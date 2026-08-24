@@ -12,21 +12,20 @@ function Courses() {
 
   // ================= COURSE IMAGES =================
   const courseImages = {
-    1: "/images/course1.png",
-    2: "/images/course2.png",
-    3: "/images/course3.png",
-    4: "/images/course4.png",
-    5: "/images/course5.png",
-    6: "/images/course6.png",
-  };
+  1: "/images/image1.jpg",
+  2: "/images/image2.avif",
+  3: "/images/img3.avif",
+  4: "/images/img4.avif",
+  5: "/images/img5.jpg",
+  6: "/images/img6.jpeg",
+};
 
-  const FALLBACK_IMAGE = "/images/course1.png";
+const FALLBACK_IMAGE = "/images/image1.jpg";
 
-  const getCourseImage = (course) => {
-    const id = Number(course?.id);
-
-    return courseImages[id] || FALLBACK_IMAGE;
-  };
+const getCourseImage = (course) => {
+  const id = Number(course?.id);
+  return courseImages[id] || FALLBACK_IMAGE;
+};
 
   // ================= LOAD COURSES + CATEGORIES =================
   useEffect(() => {
