@@ -1,4 +1,4 @@
-altair==6.0.0
+
 Django==5.2.14
 djangorestframework==3.17.1
 djangorestframework-simplejwt==5.5.1
