@@ -8,3 +8,5 @@ dist/
 build/
 *.sqlite3
 *.zip
+.vercel
+.env*
