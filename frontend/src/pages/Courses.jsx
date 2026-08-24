@@ -12,14 +12,14 @@ function Courses() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE_URL}/api/courses/`).then((res) => {
+      fetch(`${API_BASE_URL}/api/courses/courses/`).then((res) => {
         if (!res.ok) {
           throw new Error(`Courses API error: ${res.status}`);
         }
         return res.json();
       }),
 
-      fetch(`${API_BASE_URL}/api/categories/`)
+      fetch(`${API_BASE_URL}/api/courses/categories/`)
         .then((res) => {
           if (!res.ok) {
             throw new Error(`Categories API error: ${res.status}`);
@@ -29,8 +29,18 @@ function Courses() {
         .catch(() => []),
     ])
       .then(([courseData, catData]) => {
-        setCourses(Array.isArray(courseData) ? courseData : []);
-        setCategories(Array.isArray(catData) ? catData : []);
+        setCourses(
+          Array.isArray(courseData)
+            ? courseData
+            : courseData.results || []
+        );
+
+        setCategories(
+          Array.isArray(catData)
+            ? catData
+            : catData.results || []
+        );
+
         setLoading(false);
       })
       .catch((err) => {
@@ -51,7 +61,7 @@ function Courses() {
 
     const matchesCategory =
       selectedCategory === "All" ||
-      course.category === Number(selectedCategory);
+      Number(course.category) === Number(selectedCategory);
 
     return matchesSearch && matchesCategory;
   });
