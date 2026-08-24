@@ -6,42 +6,82 @@ from pathlib import Path
 import os
 import dj_database_url
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+# =========================================================
+# BASE DIRECTORY
+# =========================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# =========================================================
+# SECURITY
+# =========================================================
+
 SECRET_KEY = os.environ.get(
     "SECRET_KEY",
     "django-insecure-5w)(c6w86sxvt-)6b_u-!ei!il+9+0zph)jy#cgff=#d=*%n12"
 )
 
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
-
 
 ALLOWED_HOSTS = ["*"]
 
 
+# =========================================================
+# MEDIA FILES
+# =========================================================
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+
+# =========================================================
+# STATIC FILES
+# =========================================================
+
+STATIC_URL = "/assets/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+STATICFILES_DIRS = [
+    BASE_DIR.parent / "frontend" / "dist" / "assets"
+]
+
+
+# =========================================================
 # CORS
+# =========================================================
+
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+
+# =========================================================
+# CSRF
+# =========================================================
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+
+    # Render frontend URL
+    "https://online-course-project.onrender.com",
 ]
 
 
-# Custom User Model
+# =========================================================
+# CUSTOM USER MODEL
+# =========================================================
+
 AUTH_USER_MODEL = "accounts.User"
 
 
-# Application definition
+# =========================================================
+# APPLICATIONS
+# =========================================================
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -60,7 +100,10 @@ INSTALLED_APPS = [
 ]
 
 
-# Middleware
+# =========================================================
+# MIDDLEWARE
+# =========================================================
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -73,17 +116,27 @@ MIDDLEWARE = [
 ]
 
 
+# =========================================================
+# URL CONFIGURATION
+# =========================================================
+
 ROOT_URLCONF = "config.urls"
 
 
-# Templates
+# =========================================================
+# TEMPLATES
+# =========================================================
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
+
         "DIRS": [
             BASE_DIR.parent / "frontend" / "dist"
         ],
+
         "APP_DIRS": True,
+
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
@@ -95,12 +148,19 @@ TEMPLATES = [
 ]
 
 
+# =========================================================
+# WSGI
+# =========================================================
+
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Database
-# Local: SQLite
-# Production: PostgreSQL through DATABASE_URL
+# =========================================================
+# DATABASE
+# =========================================================
+# Local      → SQLite
+# Production → PostgreSQL using DATABASE_URL
+
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
@@ -109,24 +169,34 @@ DATABASES = {
 }
 
 
-# Password validation
+# =========================================================
+# PASSWORD VALIDATION
+# =========================================================
+
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        "NAME":
+        "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"
+        "NAME":
+        "django.contrib.auth.password_validation.MinimumLengthValidator"
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"
+        "NAME":
+        "django.contrib.auth.password_validation.CommonPasswordValidator"
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"
+        "NAME":
+        "django.contrib.auth.password_validation.NumericPasswordValidator"
     },
 ]
 
 
-# Internationalization
+# =========================================================
+# INTERNATIONALIZATION
+# =========================================================
+
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
@@ -136,13 +206,8 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files
-STATIC_URL = "/assets/"
+# =========================================================
+# DEFAULT PRIMARY KEY
+# =========================================================
 
-STATICFILES_DIRS = [
-    BASE_DIR.parent / "frontend" / "dist" / "assets"
-]
-
-
-# Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
