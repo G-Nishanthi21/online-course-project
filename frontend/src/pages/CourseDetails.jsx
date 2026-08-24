@@ -14,8 +14,7 @@ function CourseDetails() {
 
   useEffect(() => {
     // Load course details
-    fetch(`${API_BASE_URL}/api/courses/${id}/`)
-      .then((res) => {
+        fetch(`${API_BASE_URL}/api/courses/courses/${id}/`)      .then((res) => {
         if (!res.ok) {
           throw new Error("Course not found");
         }
