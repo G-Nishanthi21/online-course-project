@@ -6,13 +6,7 @@ from pathlib import Path
 import os
 import dj_database_url
 
-
-# =========================================================
-# BASE DIRECTORY
-# =========================================================
-
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # =========================================================
 # SECURITY
@@ -27,17 +21,15 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ["*"]
 
-
 # =========================================================
-# MEDIA FILES
+# MEDIA
 # =========================================================
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-
 # =========================================================
-# STATIC FILES
+# STATIC
 # =========================================================
 
 STATIC_URL = "/assets/"
@@ -47,14 +39,12 @@ STATICFILES_DIRS = [
     BASE_DIR.parent / "frontend" / "dist" / "assets"
 ]
 
-
 # =========================================================
 # CORS
 # =========================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-
 
 # =========================================================
 # CSRF
@@ -65,21 +55,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-
-    # Render frontend URL
-    "https://online-course-project.onrender.com",
+    "https://online-course-frontend-n4v8.onrender.com",
+    "https://online-course-project-adpn.onrender.com",
 ]
 
-
 # =========================================================
-# CUSTOM USER MODEL
+# CUSTOM USER
 # =========================================================
 
 AUTH_USER_MODEL = "accounts.User"
 
-
 # =========================================================
-# APPLICATIONS
+# APPS
 # =========================================================
 
 INSTALLED_APPS = [
@@ -99,7 +86,6 @@ INSTALLED_APPS = [
     "payments",
 ]
 
-
 # =========================================================
 # MIDDLEWARE
 # =========================================================
@@ -115,13 +101,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 # =========================================================
-# URL CONFIGURATION
+# URL
 # =========================================================
 
 ROOT_URLCONF = "config.urls"
-
 
 # =========================================================
 # TEMPLATES
@@ -130,13 +114,10 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-
         "DIRS": [
             BASE_DIR.parent / "frontend" / "dist"
         ],
-
         "APP_DIRS": True,
-
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
@@ -147,19 +128,15 @@ TEMPLATES = [
     },
 ]
 
-
 # =========================================================
 # WSGI
 # =========================================================
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # =========================================================
 # DATABASE
 # =========================================================
-# Local      → SQLite
-# Production → PostgreSQL using DATABASE_URL
 
 DATABASES = {
     "default": dj_database_url.config(
@@ -167,7 +144,6 @@ DATABASES = {
         conn_max_age=600,
     )
 }
-
 
 # =========================================================
 # PASSWORD VALIDATION
@@ -192,7 +168,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # =========================================================
 # INTERNATIONALIZATION
 # =========================================================
@@ -202,9 +177,7 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 
 USE_I18N = True
-
 USE_TZ = True
-
 
 # =========================================================
 # DEFAULT PRIMARY KEY
