@@ -10,19 +10,34 @@ function Courses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // ================= COURSE IMAGES =================
+  // Images are inside frontend/public/images/
+  const courseImages = {
+    1: "/images/course1.png",
+    2: "/images/course2.png",
+    3: "/images/course3.png",
+    4: "/images/course4.png",
+    5: "/images/course5.png",
+    6: "/images/course6.png",
+  };
+
+  // Fallback image
   const FALLBACK_IMAGE =
     "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80";
 
+  // Get image based on course ID
   const getCourseImage = (course) => {
-    return course.image || FALLBACK_IMAGE;
+    return courseImages[course?.id] || FALLBACK_IMAGE;
   };
 
+  // ================= LOAD COURSES + CATEGORIES =================
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError("");
 
+        // ================= COURSES API =================
         const courseResponse = await fetch(
           `${API_BASE_URL}/api/courses/courses/`
         );
@@ -49,6 +64,7 @@ function Courses() {
 
         setCourses(courseList);
 
+        // ================= CATEGORIES API =================
         try {
           const categoryResponse = await fetch(
             `${API_BASE_URL}/api/courses/categories/`
@@ -95,7 +111,10 @@ function Courses() {
           err
         );
 
-        setError("Unable to load courses");
+        setError(
+          "Unable to load courses. Please try again."
+        );
+
         setCourses([]);
       } finally {
         setLoading(false);
@@ -105,6 +124,7 @@ function Courses() {
     loadData();
   }, []);
 
+  // ================= SEARCH + CATEGORY FILTER =================
   const filteredCourses = courses.filter(
     (course) => {
       const search =
@@ -134,6 +154,7 @@ function Courses() {
     }
   );
 
+  // ================= LOADING =================
   if (loading) {
     return (
       <div className="container page-padding text-center">
@@ -142,9 +163,11 @@ function Courses() {
     );
   }
 
+  // ================= MAIN UI =================
   return (
     <div className="container page-padding">
 
+      {/* ================= HEADER ================= */}
       <div className="catalog-header">
 
         <h1>Explore Online Courses</h1>
@@ -154,6 +177,7 @@ function Courses() {
           by industry experts
         </p>
 
+        {/* ================= FILTER BAR ================= */}
         <div className="filter-bar">
 
           <input
@@ -190,12 +214,14 @@ function Courses() {
         </div>
       </div>
 
+      {/* ================= ERROR ================= */}
       {error && (
         <div className="auth-error">
           {error}
         </div>
       )}
 
+      {/* ================= COURSE COUNT ================= */}
       {!error && courses.length > 0 && (
         <div
           style={{
@@ -215,6 +241,7 @@ function Courses() {
         </div>
       )}
 
+      {/* ================= NO COURSES ================= */}
       {filteredCourses.length === 0 ? (
 
         <div className="empty-state">
@@ -235,6 +262,7 @@ function Courses() {
 
       ) : (
 
+        /* ================= COURSE GRID ================= */
         <div className="courses-grid">
 
           {filteredCourses.map((course) => (
@@ -244,6 +272,7 @@ function Courses() {
               className="course-card"
             >
 
+              {/* ================= COURSE IMAGE ================= */}
               <div className="card-media">
 
                 <img
@@ -260,6 +289,7 @@ function Courses() {
                   }}
                 />
 
+                {/* Level */}
                 <span className="level-badge">
                   {course.level
                     ? course.level
@@ -271,17 +301,19 @@ function Courses() {
 
               </div>
 
+              {/* ================= COURSE BODY ================= */}
               <div className="card-body">
 
+                {/* Title */}
                 <h3 className="card-title">
                   {course.title ||
                     "Untitled Course"}
                 </h3>
 
+                {/* Description */}
                 <p className="card-desc">
                   {course.description
-                    ? course.description.length >
-                      100
+                    ? course.description.length > 100
                       ? course.description.substring(
                           0,
                           100
@@ -290,6 +322,7 @@ function Courses() {
                     : "Learn practical skills with this comprehensive online course."}
                 </p>
 
+                {/* ================= COURSE STATS ================= */}
                 <div className="card-stats">
 
                   <span>
@@ -310,6 +343,7 @@ function Courses() {
 
                 </div>
 
+                {/* ================= FOOTER ================= */}
                 <div className="card-footer-row">
 
                   <span className="price font-bold">
