@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  Link,
+  useParams,
+  useNavigate,
+} from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config";
 
@@ -10,8 +14,10 @@ function Enroll() {
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] =
+    useState("card");
+  const [processing, setProcessing] =
+    useState(false);
   const [error, setError] = useState("");
 
   const [cardData, setCardData] = useState({
@@ -23,19 +29,27 @@ function Enroll() {
     upiId: "",
   });
 
-  // ==============================
-  // LOAD COURSE DETAILS
-  // ==============================
+  // ================= LOAD COURSE =================
+
   useEffect(() => {
     const loadCourse = async () => {
       try {
         setLoading(true);
         setError("");
 
-        // IMPORTANT:
-        // Backend course endpoint contains /api/courses/courses/
-        const response = await fetch(
-          `${API_BASE_URL}/api/courses/courses/${id}/`
+        const url =
+          `${API_BASE_URL}/api/courses/courses/${id}/`;
+
+        console.log(
+          "Loading checkout course from:",
+          url
+        );
+
+        const response = await fetch(url);
+
+        console.log(
+          "Checkout course status:",
+          response.status
         );
 
         const contentType =
@@ -44,21 +58,23 @@ function Enroll() {
         if (!response.ok) {
           const text = await response.text();
 
-          console.error("Course API error:", {
-            status: response.status,
-            response: text,
-          });
+          console.error(
+            "Checkout course API error:",
+            text
+          );
 
           throw new Error(
             `Unable to load course details. Server returned ${response.status}.`
           );
         }
 
-        if (!contentType.includes("application/json")) {
+        if (
+          !contentType.includes("application/json")
+        ) {
           const text = await response.text();
 
           console.error(
-            "Course API returned non-JSON:",
+            "Checkout API returned non-JSON:",
             text
           );
 
@@ -69,7 +85,10 @@ function Enroll() {
 
         const data = await response.json();
 
-        console.log("Course details:", data);
+        console.log(
+          "Checkout course response:",
+          data
+        );
 
         if (!data || !data.id) {
           throw new Error(
@@ -95,12 +114,16 @@ function Enroll() {
 
     if (id) {
       loadCourse();
+    } else {
+      setError(
+        "Course ID is missing."
+      );
+      setLoading(false);
     }
   }, [id]);
 
-  // ==============================
-  // UPDATE USER BILLING DETAILS
-  // ==============================
+  // ================= USER DETAILS =================
+
   useEffect(() => {
     if (user) {
       setCardData((previous) => ({
@@ -117,9 +140,8 @@ function Enroll() {
     }
   }, [user]);
 
-  // ==============================
-  // CHECKOUT
-  // ==============================
+  // ================= CHECKOUT =================
+
   const handleCheckout = async (e) => {
     e.preventDefault();
 
@@ -128,6 +150,7 @@ function Enroll() {
 
     try {
       // Check login
+
       if (!user) {
         throw new Error(
           "Please login before making a payment."
@@ -135,34 +158,63 @@ function Enroll() {
       }
 
       // Check course
+
       if (!course || !course.id) {
         throw new Error(
           "Course details are not available."
         );
       }
 
+      // Check token
+
+      const token =
+        localStorage.getItem(
+          "access_token"
+        ) ||
+        localStorage.getItem(
+          "access"
+        ) ||
+        localStorage.getItem(
+          "token"
+        );
+
+      if (!token) {
+        throw new Error(
+          "Your login session has expired. Please login again."
+        );
+      }
+
+      console.log(
+        "Checkout information:",
+        {
+          courseId: course.id,
+          courseTitle: course.title,
+          price: course.price,
+          paymentMethod,
+          username: user.username,
+        }
+      );
+
       /*
-       * IMPORTANT:
-       * We are currently checking the course and login
-       * information first.
+       * TEMPORARY CHECKOUT
        *
-       * The actual Razorpay/payment endpoint should be
-       * connected only after confirming the backend
-       * payment URL.
+       * This currently confirms that:
+       * 1. User is logged in
+       * 2. Course is loaded
+       * 3. Course ID is available
+       * 4. Price is available
+       *
+       * Razorpay/payment API can be connected here.
        */
 
-      console.log("Checkout information:", {
-        courseId: course.id,
-        courseTitle: course.title,
-        price: course.price,
-        paymentMethod: paymentMethod,
-        username: user.username,
-      });
-
-      // Temporary success test
       alert(
-        `Checkout is ready!\n\nCourse: ${course.title}\nPrice: Rs. ${course.price}\nPayment Method: ${paymentMethod}`
+        `Course: ${course.title}\nPrice: Rs. ${course.price}\nPayment Method: ${paymentMethod}\n\nCourse and login data are working correctly.`
       );
+
+      /*
+       * Do not navigate yet because the actual
+       * payment/enrollment API is not connected.
+       */
     } catch (err) {
       console.error(
         "Checkout error:",
@@ -178,28 +230,33 @@ function Enroll() {
     }
   };
 
-  // ==============================
-  // LOADING
-  // ==============================
+  // ================= LOADING =================
+
   if (loading) {
     return (
       <div className="container page-padding text-center">
-        <h2>Loading course checkout...</h2>
+        <h2>
+          Loading course checkout...
+        </h2>
       </div>
     );
   }
 
-  // ==============================
-  // COURSE LOAD ERROR
-  // ==============================
+  // ================= ERROR =================
+
   if (error && !course) {
     return (
       <div className="container page-padding text-center">
-        <h2>Unable to load checkout</h2>
+
+        <h2>
+          Unable to load checkout
+        </h2>
 
         <div
           className="auth-error"
-          style={{ marginTop: "20px" }}
+          style={{
+            marginTop: "20px",
+          }}
         >
           {error}
         </div>
@@ -214,15 +271,17 @@ function Enroll() {
         >
           ← Back to Course
         </Link>
+
       </div>
     );
   }
 
-  // ==============================
-  // CHECKOUT PAGE
-  // ==============================
+  // ================= MAIN CHECKOUT =================
+
   return (
     <div className="container page-padding max-w-900">
+
+      {/* BACK BUTTON */}
 
       <Link
         to={`/courses/${id}`}
@@ -231,9 +290,17 @@ function Enroll() {
         ← Back to Course
       </Link>
 
-      <h1 style={{ marginTop: "15px" }}>
+      {/* TITLE */}
+
+      <h1
+        style={{
+          marginTop: "15px",
+        }}
+      >
         Secure Checkout
       </h1>
+
+      {/* ERROR */}
 
       {error && (
         <div className="auth-error">
@@ -243,16 +310,16 @@ function Enroll() {
 
       <div className="checkout-grid">
 
-        {/* ==========================
-            LEFT SIDE
-        ========================== */}
+        {/* ================= LEFT SIDE ================= */}
+
         <div className="checkout-form-box">
 
           <h3>
             1. Billing Information
           </h3>
 
-          {/* FULL NAME */}
+          {/* NAME */}
+
           <div className="form-group">
 
             <label>
@@ -274,6 +341,7 @@ function Enroll() {
           </div>
 
           {/* EMAIL */}
+
           <div className="form-group">
 
             <label>
@@ -294,7 +362,8 @@ function Enroll() {
 
           </div>
 
-          {/* PAYMENT METHOD */}
+          {/* PAYMENT */}
+
           <h3
             style={{
               marginTop: "25px",
@@ -306,6 +375,7 @@ function Enroll() {
           <div className="payment-options">
 
             {/* CARD */}
+
             <button
               type="button"
               className={`pay-tab ${
@@ -321,6 +391,7 @@ function Enroll() {
             </button>
 
             {/* UPI */}
+
             <button
               type="button"
               className={`pay-tab ${
@@ -336,6 +407,7 @@ function Enroll() {
             </button>
 
             {/* NET BANKING */}
+
             <button
               type="button"
               className={`pay-tab ${
@@ -355,10 +427,10 @@ function Enroll() {
 
           </div>
 
-          {/* ==========================
-              CARD PAYMENT
-          ========================== */}
+          {/* ================= CARD ================= */}
+
           {paymentMethod === "card" && (
+
             <div className="card-fields">
 
               <div className="form-group">
@@ -436,10 +508,10 @@ function Enroll() {
             </div>
           )}
 
-          {/* ==========================
-              UPI PAYMENT
-          ========================== */}
+          {/* ================= UPI ================= */}
+
           {paymentMethod === "upi" && (
+
             <div
               className="form-group"
               style={{
@@ -469,11 +541,11 @@ function Enroll() {
             </div>
           )}
 
-          {/* ==========================
-              NET BANKING
-          ========================== */}
+          {/* ================= NET BANKING ================= */}
+
           {paymentMethod ===
             "netbanking" && (
+
             <div
               className="form-group"
               style={{
@@ -508,9 +580,8 @@ function Enroll() {
             </div>
           )}
 
-          {/* ==========================
-              PAYMENT BUTTON
-          ========================== */}
+          {/* ================= PAYMENT BUTTON ================= */}
+
           <button
             type="button"
             className="btn-primary full-width"
@@ -518,11 +589,10 @@ function Enroll() {
               marginTop: "20px",
               fontSize: "18px",
             }}
-            onClick={
-              handleCheckout
-            }
+            onClick={handleCheckout}
             disabled={
-              processing || !course
+              processing ||
+              !course
             }
           >
             {processing
@@ -534,16 +604,16 @@ function Enroll() {
 
         </div>
 
-        {/* ==========================
-            RIGHT SIDE
-        ========================== */}
+        {/* ================= RIGHT SIDE ================= */}
+
         <div className="order-summary-box">
 
           <h3>
             Order Summary
           </h3>
 
-          {/* COURSE TITLE */}
+          {/* COURSE */}
+
           <div className="summary-item">
 
             <span>
@@ -558,6 +628,7 @@ function Enroll() {
           </div>
 
           {/* DURATION */}
+
           <div className="summary-item">
 
             <span>
@@ -571,7 +642,8 @@ function Enroll() {
 
           </div>
 
-          {/* ORIGINAL PRICE */}
+          {/* PRICE */}
+
           <div className="summary-item">
 
             <span>
@@ -586,6 +658,7 @@ function Enroll() {
           </div>
 
           {/* DISCOUNT */}
+
           <div className="summary-item">
 
             <span>
@@ -606,6 +679,7 @@ function Enroll() {
           <hr />
 
           {/* TOTAL */}
+
           <div className="summary-total">
 
             <span>
@@ -620,10 +694,12 @@ function Enroll() {
           </div>
 
           {/* GUARANTEE */}
+
           <div className="guarantee-box">
 
-            🔒 256-bit SSL Encrypted Payment
-            & 30-Day Money-Back Guarantee
+            🔒 256-bit SSL Encrypted
+            Payment & 30-Day
+            Money-Back Guarantee
 
           </div>
 
