@@ -23,39 +23,71 @@ function Enroll() {
     upiId: "",
   });
 
-  // Load course details
+  // ==============================
+  // LOAD COURSE DETAILS
+  // ==============================
   useEffect(() => {
     const loadCourse = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_BASE_URL}/courses/${id}/`);
+        // IMPORTANT:
+        // Backend course endpoint contains /api/courses/courses/
+        const response = await fetch(
+          `${API_BASE_URL}/api/courses/courses/${id}/`
+        );
 
-        const contentType = response.headers.get("content-type") || "";
+        const contentType =
+          response.headers.get("content-type") || "";
 
         if (!response.ok) {
           const text = await response.text();
-          console.error("Course API error:", text);
-          throw new Error("Unable to load course details.");
+
+          console.error("Course API error:", {
+            status: response.status,
+            response: text,
+          });
+
+          throw new Error(
+            `Unable to load course details. Server returned ${response.status}.`
+          );
         }
 
         if (!contentType.includes("application/json")) {
           const text = await response.text();
-          console.error("Course API returned non-JSON:", text);
-          throw new Error("Invalid response from course service.");
+
+          console.error(
+            "Course API returned non-JSON:",
+            text
+          );
+
+          throw new Error(
+            "Invalid response from course service."
+          );
         }
 
         const data = await response.json();
 
+        console.log("Course details:", data);
+
         if (!data || !data.id) {
-          throw new Error("Course details not found.");
+          throw new Error(
+            "Course details not found."
+          );
         }
 
         setCourse(data);
       } catch (err) {
-        console.error("Course loading error:", err);
-        setError(err.message || "Unable to load course.");
+        console.error(
+          "Course loading error:",
+          err
+        );
+
+        setError(
+          err.message ||
+            "Unable to load course."
+        );
       } finally {
         setLoading(false);
       }
@@ -66,19 +98,28 @@ function Enroll() {
     }
   }, [id]);
 
-  // Update billing information when user loads
+  // ==============================
+  // UPDATE USER BILLING DETAILS
+  // ==============================
   useEffect(() => {
     if (user) {
       setCardData((previous) => ({
         ...previous,
+
         name: user.first_name
-          ? `${user.first_name} ${user.last_name || ""}`.trim()
+          ? `${user.first_name} ${
+              user.last_name || ""
+            }`.trim()
           : user.username || "",
+
         email: user.email || "",
       }));
     }
   }, [user]);
 
+  // ==============================
+  // CHECKOUT
+  // ==============================
   const handleCheckout = async (e) => {
     e.preventDefault();
 
@@ -88,63 +129,58 @@ function Enroll() {
     try {
       // Check login
       if (!user) {
-        throw new Error("Please login before making a payment.");
+        throw new Error(
+          "Please login before making a payment."
+        );
       }
 
       // Check course
       if (!course || !course.id) {
-        throw new Error("Course details are not available.");
-      }
-
-      // Check token
-      const token =
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("access") ||
-        localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Your login session has expired. Please login again.");
+        throw new Error(
+          "Course details are not available."
+        );
       }
 
       /*
        * IMPORTANT:
-       * Your previous code tried to use `response.json()`
-       * without creating a `response` variable.
+       * We are currently checking the course and login
+       * information first.
        *
-       * That has been removed.
-       *
-       * We are NOT guessing the payment endpoint here.
-       * First make sure course + login are working correctly.
+       * The actual Razorpay/payment endpoint should be
+       * connected only after confirming the backend
+       * payment URL.
        */
 
       console.log("Checkout information:", {
         courseId: course.id,
         courseTitle: course.title,
         price: course.price,
-        paymentMethod,
-        user: user.username,
+        paymentMethod: paymentMethod,
+        username: user.username,
       });
 
-      /*
-       * TEMPORARY TEST:
-       * This confirms that the checkout page has valid course
-       * and login data before connecting Razorpay.
-       *
-       * We will replace this section with your actual Django
-       * payment endpoint after confirming the backend payment URL.
-       */
-
+      // Temporary success test
       alert(
-        `Course: ${course.title}\nPrice: Rs. ${course.price}\n\nCourse and login data are working correctly.`
+        `Checkout is ready!\n\nCourse: ${course.title}\nPrice: Rs. ${course.price}\nPayment Method: ${paymentMethod}`
       );
     } catch (err) {
-      console.error("Checkout error:", err);
-      setError(err.message || "Payment failed. Please try again.");
+      console.error(
+        "Checkout error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Payment failed. Please try again."
+      );
     } finally {
       setProcessing(false);
     }
   };
 
+  // ==============================
+  // LOADING
+  // ==============================
   if (loading) {
     return (
       <div className="container page-padding text-center">
@@ -153,11 +189,18 @@ function Enroll() {
     );
   }
 
+  // ==============================
+  // COURSE LOAD ERROR
+  // ==============================
   if (error && !course) {
     return (
       <div className="container page-padding text-center">
         <h2>Unable to load checkout</h2>
-        <div className="auth-error" style={{ marginTop: "20px" }}>
+
+        <div
+          className="auth-error"
+          style={{ marginTop: "20px" }}
+        >
           {error}
         </div>
 
@@ -175,23 +218,46 @@ function Enroll() {
     );
   }
 
+  // ==============================
+  // CHECKOUT PAGE
+  // ==============================
   return (
     <div className="container page-padding max-w-900">
-      <Link to={`/courses/${id}`} className="back-link">
+
+      <Link
+        to={`/courses/${id}`}
+        className="back-link"
+      >
         ← Back to Course
       </Link>
 
-      <h1 style={{ marginTop: "15px" }}>Secure Checkout</h1>
+      <h1 style={{ marginTop: "15px" }}>
+        Secure Checkout
+      </h1>
 
-      {error && <div className="auth-error">{error}</div>}
+      {error && (
+        <div className="auth-error">
+          {error}
+        </div>
+      )}
 
       <div className="checkout-grid">
-        {/* LEFT SIDE */}
-        <div className="checkout-form-box">
-          <h3>1. Billing Information</h3>
 
+        {/* ==========================
+            LEFT SIDE
+        ========================== */}
+        <div className="checkout-form-box">
+
+          <h3>
+            1. Billing Information
+          </h3>
+
+          {/* FULL NAME */}
           <div className="form-group">
-            <label>Full Name</label>
+
+            <label>
+              Full Name
+            </label>
 
             <input
               type="text"
@@ -204,10 +270,15 @@ function Enroll() {
               }
               placeholder="Your Name"
             />
+
           </div>
 
+          {/* EMAIL */}
           <div className="form-group">
-            <label>Email Address</label>
+
+            <label>
+              Email Address
+            </label>
 
             <input
               type="email"
@@ -220,86 +291,135 @@ function Enroll() {
               }
               placeholder="your@email.com"
             />
+
           </div>
 
-          <h3 style={{ marginTop: "25px" }}>
+          {/* PAYMENT METHOD */}
+          <h3
+            style={{
+              marginTop: "25px",
+            }}
+          >
             2. Payment Method
           </h3>
 
           <div className="payment-options">
+
+            {/* CARD */}
             <button
               type="button"
               className={`pay-tab ${
-                paymentMethod === "card" ? "active" : ""
+                paymentMethod === "card"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setPaymentMethod("card")}
+              onClick={() =>
+                setPaymentMethod("card")
+              }
             >
               💳 Credit/Debit Card
             </button>
 
+            {/* UPI */}
             <button
               type="button"
               className={`pay-tab ${
-                paymentMethod === "upi" ? "active" : ""
+                paymentMethod === "upi"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setPaymentMethod("upi")}
+              onClick={() =>
+                setPaymentMethod("upi")
+              }
             >
               📱 UPI / QR
             </button>
 
+            {/* NET BANKING */}
             <button
               type="button"
               className={`pay-tab ${
-                paymentMethod === "netbanking" ? "active" : ""
+                paymentMethod ===
+                "netbanking"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setPaymentMethod("netbanking")}
+              onClick={() =>
+                setPaymentMethod(
+                  "netbanking"
+                )
+              }
             >
               🏦 Net Banking
             </button>
+
           </div>
 
-          {/* CARD */}
+          {/* ==========================
+              CARD PAYMENT
+          ========================== */}
           {paymentMethod === "card" && (
             <div className="card-fields">
+
               <div className="form-group">
-                <label>Card Number</label>
+
+                <label>
+                  Card Number
+                </label>
 
                 <input
                   type="text"
-                  value={cardData.cardNumber}
+                  value={
+                    cardData.cardNumber
+                  }
                   onChange={(e) =>
                     setCardData({
                       ...cardData,
-                      cardNumber: e.target.value,
+                      cardNumber:
+                        e.target.value,
                     })
                   }
                   placeholder="Card Number"
                 />
+
               </div>
 
               <div className="form-row">
+
                 <div className="form-group">
-                  <label>Expiry Date</label>
+
+                  <label>
+                    Expiry Date
+                  </label>
 
                   <input
                     type="text"
-                    value={cardData.expiry}
+                    value={
+                      cardData.expiry
+                    }
                     onChange={(e) =>
                       setCardData({
                         ...cardData,
-                        expiry: e.target.value,
+                        expiry:
+                          e.target.value,
                       })
                     }
                     placeholder="MM/YY"
                   />
+
                 </div>
 
                 <div className="form-group">
-                  <label>CVV</label>
+
+                  <label>
+                    CVV
+                  </label>
 
                   <input
                     type="password"
-                    value={cardData.cvv}
+                    value={
+                      cardData.cvv
+                    }
                     onChange={(e) =>
                       setCardData({
                         ...cardData,
@@ -308,51 +428,89 @@ function Enroll() {
                     }
                     placeholder="CVV"
                   />
+
                 </div>
+
               </div>
+
             </div>
           )}
 
-          {/* UPI */}
+          {/* ==========================
+              UPI PAYMENT
+          ========================== */}
           {paymentMethod === "upi" && (
             <div
               className="form-group"
-              style={{ marginTop: "15px" }}
+              style={{
+                marginTop: "15px",
+              }}
             >
-              <label>UPI ID</label>
+
+              <label>
+                UPI ID
+              </label>
 
               <input
                 type="text"
-                value={cardData.upiId}
+                value={
+                  cardData.upiId
+                }
                 onChange={(e) =>
                   setCardData({
                     ...cardData,
-                    upiId: e.target.value,
+                    upiId:
+                      e.target.value,
                   })
                 }
                 placeholder="username@upi"
               />
+
             </div>
           )}
 
-          {/* NET BANKING */}
-          {paymentMethod === "netbanking" && (
+          {/* ==========================
+              NET BANKING
+          ========================== */}
+          {paymentMethod ===
+            "netbanking" && (
             <div
               className="form-group"
-              style={{ marginTop: "15px" }}
+              style={{
+                marginTop: "15px",
+              }}
             >
-              <label>Select Bank</label>
+
+              <label>
+                Select Bank
+              </label>
 
               <select>
-                <option>State Bank of India</option>
-                <option>HDFC Bank</option>
-                <option>ICICI Bank</option>
-                <option>Axis Bank</option>
+
+                <option>
+                  State Bank of India
+                </option>
+
+                <option>
+                  HDFC Bank
+                </option>
+
+                <option>
+                  ICICI Bank
+                </option>
+
+                <option>
+                  Axis Bank
+                </option>
+
               </select>
+
             </div>
           )}
 
-          {/* PAYMENT BUTTON */}
+          {/* ==========================
+              PAYMENT BUTTON
+          ========================== */}
           <button
             type="button"
             className="btn-primary full-width"
@@ -360,8 +518,12 @@ function Enroll() {
               marginTop: "20px",
               fontSize: "18px",
             }}
-            onClick={handleCheckout}
-            disabled={processing || !course}
+            onClick={
+              handleCheckout
+            }
+            disabled={
+              processing || !course
+            }
           >
             {processing
               ? "Processing Payment..."
@@ -369,64 +531,106 @@ function Enroll() {
                   course?.price || "0"
                 })`}
           </button>
+
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* ==========================
+            RIGHT SIDE
+        ========================== */}
         <div className="order-summary-box">
-          <h3>Order Summary</h3>
 
+          <h3>
+            Order Summary
+          </h3>
+
+          {/* COURSE TITLE */}
           <div className="summary-item">
-            <span>Course Title</span>
+
+            <span>
+              Course Title
+            </span>
 
             <strong>
-              {course?.title || "Course Title"}
+              {course?.title ||
+                "Course Title"}
             </strong>
+
           </div>
 
+          {/* DURATION */}
           <div className="summary-item">
-            <span>Duration</span>
 
             <span>
-              {course?.duration || "Lifetime Access"}
+              Duration
             </span>
-          </div>
-
-          <div className="summary-item">
-            <span>Original Price</span>
 
             <span>
-              Rs. {course?.price || "0"}
+              {course?.duration ||
+                "Lifetime Access"}
             </span>
+
           </div>
 
+          {/* ORIGINAL PRICE */}
           <div className="summary-item">
-            <span>Discount</span>
+
+            <span>
+              Original Price
+            </span>
+
+            <span>
+              Rs.{" "}
+              {course?.price || "0"}
+            </span>
+
+          </div>
+
+          {/* DISCOUNT */}
+          <div className="summary-item">
+
+            <span>
+              Discount
+            </span>
 
             <span
               style={{
-                color: "var(--accent-color)",
+                color:
+                  "var(--accent-color)",
               }}
             >
               Free Instant Access
             </span>
+
           </div>
 
           <hr />
 
+          {/* TOTAL */}
           <div className="summary-total">
-            <span>Total Payable</span>
+
+            <span>
+              Total Payable
+            </span>
 
             <span className="total-price">
-              Rs. {course?.price || "0"}
+              Rs.{" "}
+              {course?.price || "0"}
             </span>
+
           </div>
 
+          {/* GUARANTEE */}
           <div className="guarantee-box">
-            🔒 256-bit SSL Encrypted Payment & 30-Day
-            Money-Back Guarantee
+
+            🔒 256-bit SSL Encrypted Payment
+            & 30-Day Money-Back Guarantee
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }
