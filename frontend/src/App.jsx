@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Courses from "./pages/Courses";
@@ -5,8 +6,9 @@ import CourseDetails from "./pages/CourseDetails";
 import Enroll from "./pages/Enroll";
 import MyCourses from "./pages/MyCourses";
 import Learning from "./pages/Learning";
-import Login from "./pages/Login";
+import PaymentSuccess from "./components/PaymentSuccess";
 import Register from "./pages/Register";
+import Login from "./pages/Login";
 
 function Navigation() {
   const { user, logoutUser } = useAuth();
@@ -101,6 +103,16 @@ function Home() {
 }
 
 function Success() {
+  const navigate = useNavigate();
+
+  // Auto‑redirect to dashboard after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate('/my-courses');
+    }, 1000); // 1 second
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
     <div className="container page-padding text-center max-w-600">
       <div className="success-card">
@@ -137,7 +149,7 @@ function App() {
               <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/enrollment-success" element={<Success />} />
+              <Route path="/enrollment-success" element={<PaymentSuccess />} />
             </Routes>
           </main>
           <footer className="footer">

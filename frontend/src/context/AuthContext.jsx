@@ -24,14 +24,9 @@ export function AuthProvider({ children }) {
 
       return null;
     } catch (error) {
-      console.error(
-        "Saved user error:",
-        error
-      );
+      console.error("Saved user error:", error);
 
-      localStorage.removeItem(
-        "learnhub_user"
-      );
+      localStorage.removeItem("learnhub_user");
 
       return null;
     }
@@ -55,19 +50,44 @@ export function AuthProvider({ children }) {
     `${API_BASE_URL}/api/accounts/logout/`;
 
   // =====================================================
+  // GET JWT TOKEN
+  // =====================================================
+  const getToken = () => {
+    return (
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("access_token") ||
+      localStorage.getItem("access") ||
+      sessionStorage.getItem("access") ||
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token")
+    );
+  };
+
+  // =====================================================
   // CHECK CURRENT USER
   // =====================================================
   useEffect(() => {
     const checkUser = async () => {
       try {
+        const token = getToken();
+
+        // If there is no token, skip the request – user is not authenticated yet.
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const headers = {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        };
+
         const response = await fetch(
           ME_URL,
           {
             method: "GET",
             credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
+            headers,
           }
         );
 
@@ -76,9 +96,6 @@ export function AuthProvider({ children }) {
             "content-type"
           ) || "";
 
-        // -------------------------------------------------
-        // Backend returned HTML
-        // -------------------------------------------------
         if (
           !contentType.includes(
             "application/json"
@@ -103,10 +120,7 @@ export function AuthProvider({ children }) {
           data
         );
 
-        if (
-          response.ok &&
-          data
-        ) {
+        if (response.ok && data) {
           setUser(data);
 
           localStorage.setItem(
@@ -114,12 +128,13 @@ export function AuthProvider({ children }) {
             JSON.stringify(data)
           );
         } else {
-          setUser(null);
-
-          localStorage.removeItem(
-            "learnhub_user"
-          );
+          if (response.status === 401) {
+            console.warn(
+              "JWT token is missing or expired."
+            );
+          }
         }
+
       } catch (error) {
         console.error(
           "Check user error:",
@@ -158,11 +173,8 @@ export function AuthProvider({ children }) {
             credentials: "include",
 
             body: JSON.stringify({
-              username:
-                username,
-
-              password:
-                password,
+              username,
+              password,
             }),
           }
         );
@@ -172,9 +184,6 @@ export function AuthProvider({ children }) {
           "content-type"
         ) || "";
 
-      // -------------------------------------------------
-      // HTML / non JSON response
-      // -------------------------------------------------
       if (
         !contentType.includes(
           "application/json"
@@ -201,9 +210,9 @@ export function AuthProvider({ children }) {
         data
       );
 
-      // -------------------------------------------------
+      // =================================================
       // LOGIN FAILED
-      // -------------------------------------------------
+      // =================================================
       if (!response.ok) {
         let errorMessage =
           "Login failed.";
@@ -217,22 +226,14 @@ export function AuthProvider({ children }) {
         } else if (
           data.non_field_errors
         ) {
-          if (
+          errorMessage =
             Array.isArray(
               data.non_field_errors
             )
-          ) {
-            errorMessage =
-              data.non_field_errors.join(
-                " "
-              );
-          } else {
-            errorMessage =
-              data.non_field_errors;
-          }
+              ? data.non_field_errors.join(" ")
+              : data.non_field_errors;
         } else if (
-          typeof data ===
-          "object"
+          typeof data === "object"
         ) {
           const messages =
             Object.values(data)
@@ -251,54 +252,56 @@ export function AuthProvider({ children }) {
         );
       }
 
-      // -------------------------------------------------
-      // USER NOT RETURNED
-      // -------------------------------------------------
-      if (!data.user) {
-        throw new Error(
-          "Login successful, but user information was not received."
-        );
-      }
+      // =================================================
+      // SAVE JWT TOKEN
+      // =================================================
+      const token =
+      data.access ||
+      data.access_token ||
+      data.token;
 
-      // -------------------------------------------------
+    if (token) {
+      // Store in both localStorage and sessionStorage for robustness
+      localStorage.setItem("access_token", token);
+      sessionStorage.setItem("access_token", token);
+      console.log("JWT access token saved successfully.");
+    } else {
+      console.warn("Login response does not contain JWT access token.");
+    }
+
+      // =================================================
       // SAVE USER
-      // -------------------------------------------------
-      setUser(data.user);
+      // =================================================
+      if (data.user) {
+        setUser(data.user);
 
-      localStorage.setItem(
-        "learnhub_user",
-        JSON.stringify(
-          data.user
-        )
-      );
-
-      // -------------------------------------------------
-      // SAVE TOKEN IF AVAILABLE
-      // -------------------------------------------------
-      if (data.access) {
         localStorage.setItem(
-          "access_token",
-          data.access
+          "learnhub_user",
+          JSON.stringify(data.user)
         );
+
+        return data.user;
       }
 
+      // Some APIs return user directly
       if (
-        data.access_token
+        data.username ||
+        data.email ||
+        data.id
       ) {
+        setUser(data);
+
         localStorage.setItem(
-          "access_token",
-          data.access_token
+          "learnhub_user",
+          JSON.stringify(data)
         );
+
+        return data;
       }
 
-      if (data.token) {
-        localStorage.setItem(
-          "access_token",
-          data.token
-        );
-      }
-
-      return data.user;
+      throw new Error(
+        "Login successful, but user information was not received."
+      );
 
     } catch (error) {
       console.error(
@@ -330,8 +333,7 @@ export function AuthProvider({ children }) {
                   "application/json",
               },
 
-              credentials:
-                "include",
+              credentials: "include",
 
               body:
                 JSON.stringify(
@@ -345,9 +347,6 @@ export function AuthProvider({ children }) {
             "content-type"
           ) || "";
 
-        // -------------------------------------------------
-        // HTML / NON JSON RESPONSE
-        // -------------------------------------------------
         if (
           !contentType.includes(
             "application/json"
@@ -374,9 +373,6 @@ export function AuthProvider({ children }) {
           data
         );
 
-        // -------------------------------------------------
-        // REGISTRATION FAILED
-        // -------------------------------------------------
         if (!response.ok) {
           let errorMessage =
             "Registration failed.";
@@ -384,14 +380,11 @@ export function AuthProvider({ children }) {
           if (data.detail) {
             errorMessage =
               data.detail;
-          } else if (
-            data.error
-          ) {
+          } else if (data.error) {
             errorMessage =
               data.error;
           } else if (
-            typeof data ===
-            "object"
+            typeof data === "object"
           ) {
             const messages =
               Object.values(data)
@@ -410,18 +403,30 @@ export function AuthProvider({ children }) {
           );
         }
 
-        // -------------------------------------------------
-        // USER NOT RETURNED
-        // -------------------------------------------------
+        // =================================================
+        // SAVE TOKEN
+        // =================================================
+        const token =
+          data.access ||
+          data.access_token ||
+          data.token;
+
+        if (token) {
+          localStorage.setItem(
+            "access_token",
+            token
+          );
+        }
+
+        // =================================================
+        // SAVE USER
+        // =================================================
         if (!data.user) {
           throw new Error(
             "Registration successful, but user information was not received."
           );
         }
 
-        // -------------------------------------------------
-        // SAVE USER
-        // -------------------------------------------------
         setUser(data.user);
 
         localStorage.setItem(
@@ -430,32 +435,6 @@ export function AuthProvider({ children }) {
             data.user
           )
         );
-
-        // -------------------------------------------------
-        // SAVE TOKEN IF AVAILABLE
-        // -------------------------------------------------
-        if (data.access) {
-          localStorage.setItem(
-            "access_token",
-            data.access
-          );
-        }
-
-        if (
-          data.access_token
-        ) {
-          localStorage.setItem(
-            "access_token",
-            data.access_token
-          );
-        }
-
-        if (data.token) {
-          localStorage.setItem(
-            "access_token",
-            data.token
-          );
-        }
 
         return data.user;
 
@@ -475,6 +454,19 @@ export function AuthProvider({ children }) {
   const logoutUser =
     async () => {
       try {
+        const token =
+          getToken();
+
+        const headers = {
+          Accept:
+            "application/json",
+        };
+
+        if (token) {
+          headers.Authorization =
+            `Bearer ${token}`;
+        }
+
         await fetch(
           LOGOUT_URL,
           {
@@ -483,12 +475,10 @@ export function AuthProvider({ children }) {
             credentials:
               "include",
 
-            headers: {
-              Accept:
-                "application/json",
-            },
+            headers,
           }
         );
+
       } catch (error) {
         console.error(
           "Logout error:",
@@ -496,9 +486,6 @@ export function AuthProvider({ children }) {
         );
       }
 
-      // -------------------------------------------------
-      // CLEAR USER
-      // -------------------------------------------------
       setUser(null);
 
       localStorage.removeItem(
@@ -536,9 +523,9 @@ export function AuthProvider({ children }) {
   );
 }
 
-// =======================================================
+// =====================================================
 // USE AUTH
-// =======================================================
+// =====================================================
 export function useAuth() {
   return useContext(
     AuthContext

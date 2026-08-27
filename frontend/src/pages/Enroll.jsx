@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config";
+import {
+  initiateRazorpay,
+  verifyPayment,
+} from "../services/PaymentService";
 
 function Enroll() {
   const { id } = useParams();
@@ -24,7 +28,7 @@ function Enroll() {
   });
 
   // =====================================================
-  // LOAD COURSE DETAILS
+  // LOAD COURSE
   // =====================================================
 
   useEffect(() => {
@@ -33,10 +37,6 @@ function Enroll() {
         setLoading(true);
         setError("");
 
-        /*
-         * IMPORTANT:
-         * Course API path
-         */
         const response = await fetch(
           `${API_BASE_URL}/api/courses/courses/${id}/`,
           {
@@ -45,11 +45,6 @@ function Enroll() {
               Accept: "application/json",
             },
           }
-        );
-
-        console.log(
-          "Course API status:",
-          response.status
         );
 
         const contentType =
@@ -64,43 +59,34 @@ function Enroll() {
           );
 
           throw new Error(
-            "Unable to load course details."
+            "Unable to load course details. Please check the backend API."
           );
         }
 
         const data = await response.json();
 
-        console.log(
-          "Course details:",
-          data
-        );
-
         if (!response.ok) {
           throw new Error(
             data?.detail ||
+              data?.error ||
               "Unable to load course details."
           );
         }
 
         if (!data || !data.id) {
-          throw new Error(
-            "Course details not found."
-          );
+          throw new Error("Course details not found.");
         }
 
-        setCourse(data);
+        console.log("Course details:", data);
 
+        setCourse(data);
       } catch (err) {
-        console.error(
-          "Course loading error:",
-          err
-        );
+        console.error("Load course error:", err);
 
         setError(
           err.message ||
-            "Unable to load course."
+            "Unable to load course details."
         );
-
       } finally {
         setLoading(false);
       }
@@ -112,27 +98,28 @@ function Enroll() {
   }, [id]);
 
   // =====================================================
-  // SET USER BILLING DETAILS
+  // SET USER DETAILS
   // =====================================================
 
   useEffect(() => {
     if (user) {
-      setCardData((previous) => ({
-        ...previous,
-
-        name: user.first_name
+      const fullName =
+        user.first_name
           ? `${user.first_name} ${
               user.last_name || ""
             }`.trim()
-          : user.username || "",
+          : user.username || "";
 
+      setCardData((previous) => ({
+        ...previous,
+        name: fullName,
         email: user.email || "",
       }));
     }
   }, [user]);
 
   // =====================================================
-  // HANDLE INPUT
+  // INPUT CHANGE
   // =====================================================
 
   const handleInputChange = (e) => {
@@ -148,12 +135,57 @@ function Enroll() {
   // GET TOKEN
   // =====================================================
 
-  const getToken = () => {
+  const getAuthToken = () => {
     return (
       localStorage.getItem("access_token") ||
       localStorage.getItem("access") ||
       localStorage.getItem("token")
     );
+  };
+
+  // =====================================================
+  // GET ERROR MESSAGE
+  // =====================================================
+
+  const getErrorMessage = (data) => {
+    if (!data) {
+      return "Payment failed.";
+    }
+
+    if (typeof data === "string") {
+      return data;
+    }
+
+    if (data.detail) {
+      return Array.isArray(data.detail)
+        ? data.detail.join(" ")
+        : data.detail;
+    }
+
+    if (data.error) {
+      return Array.isArray(data.error)
+        ? data.error.join(" ")
+        : data.error;
+    }
+
+    if (data.non_field_errors) {
+      return Array.isArray(data.non_field_errors)
+        ? data.non_field_errors.join(" ")
+        : data.non_field_errors;
+    }
+
+    if (typeof data === "object") {
+      const messages = Object.values(data)
+        .flat()
+        .filter(Boolean)
+        .join(" ");
+
+      if (messages) {
+        return messages;
+      }
+    }
+
+    return "Payment failed. Please try again.";
   };
 
   // =====================================================
@@ -164,260 +196,237 @@ function Enroll() {
     e.preventDefault();
 
     setError("");
-    setProcessing(true);
+
+    // ---------------------------------------------------
+    // LOGIN CHECK
+    // ---------------------------------------------------
+
+    if (!user) {
+      alert("Please login before making a payment.");
+      navigate("/login");
+      return;
+    }
+
+    // ---------------------------------------------------
+    // COURSE CHECK
+    // ---------------------------------------------------
+
+    if (!course || !course.id) {
+      setError("Course details are not available.");
+      return;
+    }
+
+    // ---------------------------------------------------
+    // TOKEN CHECK
+    // ---------------------------------------------------
+
+    const token = getAuthToken();
+
+    if (!token) {
+      alert(
+        "Your login session has expired. Please login again."
+      );
+
+      navigate("/login");
+      return;
+    }
+
+    // ---------------------------------------------------
+    // BILLING VALIDATION
+    // ---------------------------------------------------
+
+    if (!cardData.name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!cardData.email.trim()) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    // ---------------------------------------------------
+    // CARD VALIDATION
+    // ---------------------------------------------------
+
+    if (paymentMethod === "card") {
+      if (!cardData.cardNumber.trim()) {
+        setError("Please enter your card number.");
+        return;
+      }
+
+      if (!cardData.expiry.trim()) {
+        setError("Please enter card expiry date.");
+        return;
+      }
+
+      if (!cardData.cvv.trim()) {
+        setError("Please enter CVV.");
+        return;
+      }
+    }
+
+    // ---------------------------------------------------
+    // UPI VALIDATION
+    // ---------------------------------------------------
+
+    if (paymentMethod === "upi") {
+      if (!cardData.upiId.trim()) {
+        setError("Please enter your UPI ID.");
+        return;
+      }
+    }
 
     try {
-      // -------------------------------------------------
-      // CHECK USER
-      // -------------------------------------------------
+      setProcessing(true);
 
-      if (!user) {
-        throw new Error(
-          "Please login before making a payment."
-        );
-      }
-
-      // -------------------------------------------------
-      // CHECK COURSE
-      // -------------------------------------------------
-
-      if (!course || !course.id) {
-        throw new Error(
-          "Course details are not available."
-        );
-      }
-
-      // -------------------------------------------------
-      // GET JWT TOKEN
-      // -------------------------------------------------
-
-      const token = getToken();
+      // =================================================
+      // CREATE PAYMENT ORDER
+      // =================================================
 
       console.log(
-        "Access token exists:",
-        Boolean(token)
+        "Creating payment order for course:",
+        course.id
       );
 
-      if (!token) {
-        throw new Error(
-          "Your login session has expired. Please login again."
-        );
-      }
-
-      // -------------------------------------------------
-      // VALIDATE BILLING
-      // -------------------------------------------------
-
-      if (!cardData.name.trim()) {
-        throw new Error(
-          "Please enter your full name."
-        );
-      }
-
-      if (!cardData.email.trim()) {
-        throw new Error(
-          "Please enter your email address."
-        );
-      }
-
-      // -------------------------------------------------
-      // CARD VALIDATION
-      // -------------------------------------------------
-
-      if (paymentMethod === "card") {
-        if (!cardData.cardNumber.trim()) {
-          throw new Error(
-            "Please enter your card number."
-          );
-        }
-
-        if (!cardData.expiry.trim()) {
-          throw new Error(
-            "Please enter card expiry date."
-          );
-        }
-
-        if (!cardData.cvv.trim()) {
-          throw new Error(
-            "Please enter CVV."
-          );
-        }
-      }
-
-      // -------------------------------------------------
-      // UPI VALIDATION
-      // -------------------------------------------------
-
-      if (paymentMethod === "upi") {
-        if (!cardData.upiId.trim()) {
-          throw new Error(
-            "Please enter your UPI ID."
-          );
-        }
-      }
-
-      console.log(
-        "Starting checkout..."
-      );
-
-      console.log({
-        user: user.username,
-        courseId: course.id,
-        courseTitle: course.title,
-        price: course.price,
-        paymentMethod,
+      const orderData = await initiateRazorpay({
+        course_id: course.id,
+        payment_method: paymentMethod,
       });
 
-      // -------------------------------------------------
-      // PAYMENT API
-      // -------------------------------------------------
-
-      const response = await fetch(
-        `${API_BASE_URL}/payments/checkout/`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Accept:
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          credentials: "include",
-
-          body: JSON.stringify({
-            course_id: course.id,
-
-            payment_method:
-              paymentMethod,
-
-            student_name:
-              cardData.name,
-
-            student_email:
-              cardData.email,
-          }),
-        }
+      console.log(
+        "Payment order response:",
+        orderData
       );
+
+      if (!orderData) {
+        throw new Error(
+          "Unable to create payment order."
+        );
+      }
+
+      // =================================================
+      // MOCK PAYMENT
+      // =================================================
+      //
+      // This is for your current test/sandbox flow.
+      //
+      // If you later use real Razorpay Checkout,
+      // replace this section with Razorpay popup.
+      // =================================================
+
+      const mockPayment = {
+        razorpay_payment_id:
+          "pay_mock_" + Date.now(),
+
+        razorpay_order_id:
+          orderData.order_id ||
+          orderData.id ||
+          "order_mock",
+
+        razorpay_signature:
+          "mock_signature",
+      };
 
       console.log(
-        "Checkout API status:",
-        response.status
+        "Mock payment:",
+        mockPayment
       );
 
-      const contentType =
-        response.headers.get(
-          "content-type"
-        ) || "";
+      // =================================================
+      // VERIFY PAYMENT
+      // =================================================
 
-      // -------------------------------------------------
-      // NON JSON RESPONSE
-      // -------------------------------------------------
+      const verification =
+        await verifyPayment({
+          ...mockPayment,
+          course_id: course.id,
+        });
+
+      console.log(
+        "Payment verification:",
+        verification
+      );
+
+      // =================================================
+      // PAYMENT SUCCESS
+      // =================================================
 
       if (
-        !contentType.includes(
-          "application/json"
+        verification &&
+        (
+          verification.success === true ||
+          verification.status === "success" ||
+          verification.verified === true ||
+          verification.payment_status === "success"
         )
       ) {
-        const text =
-          await response.text();
-
-        console.error(
-          "Checkout API returned non-JSON:",
-          text
+        alert(
+          "Payment successful! Your course enrollment is confirmed."
         );
 
-        throw new Error(
-          "Payment service returned an invalid response."
+        navigate(
+          `/enrollment-success?course=${course.id}`
         );
+
+        return;
       }
 
       // -------------------------------------------------
-      // JSON RESPONSE
+      // IF BACKEND DOES NOT SEND success FIELD
       // -------------------------------------------------
 
-      const data =
-        await response.json();
+      if (verification) {
+        alert(
+          "Payment successful! Your course enrollment is confirmed."
+        );
 
-      console.log(
-        "Checkout API response:",
-        data
-      );
+        navigate(
+          `/enrollment-success?course=${course.id}`
+        );
 
-      // -------------------------------------------------
-      // API ERROR
-      // -------------------------------------------------
-
-      if (!response.ok) {
-        let message =
-          "Payment failed. Please try again.";
-
-        if (data?.detail) {
-          message = data.detail;
-        } else if (data?.error) {
-          message = data.error;
-        } else if (
-          data?.non_field_errors
-        ) {
-          message = Array.isArray(
-            data.non_field_errors
-          )
-            ? data.non_field_errors.join(" ")
-            : data.non_field_errors;
-        } else if (
-          typeof data === "object"
-        ) {
-          const messages =
-            Object.values(data)
-              .flat()
-              .filter(Boolean)
-              .join(" ");
-
-          if (messages) {
-            message = messages;
-          }
-        }
-
-        throw new Error(message);
+        return;
       }
 
-      // -------------------------------------------------
-      // PAYMENT SUCCESS
-      // -------------------------------------------------
-
-      console.log(
-        "Payment successful!"
+      throw new Error(
+        "Payment verification failed."
       );
-
-      console.log(
-        "Enrollment created:",
-        data
-      );
-
-      /*
-       * Go to enrollment success page.
-       */
-
-      navigate(
-        "/enrollment-success"
-      );
-
     } catch (err) {
       console.error(
         "Checkout error:",
         err
       );
 
-      setError(
-        err.message ||
-          "Payment failed. Please try again."
-      );
+      const message =
+        err?.message ||
+        "Payment failed. Please try again.";
 
+      setError(message);
+
+      // -------------------------------------------------
+      // SESSION EXPIRED
+      // -------------------------------------------------
+
+      if (
+        message
+          .toLowerCase()
+          .includes("login session") ||
+        message
+          .toLowerCase()
+          .includes("expired") ||
+        message
+          .toLowerCase()
+          .includes("authentication") ||
+        message
+          .toLowerCase()
+          .includes("unauthorized")
+      ) {
+        alert(
+          "Your login session has expired. Please login again."
+        );
+
+        navigate("/login");
+      }
     } finally {
       setProcessing(false);
     }
@@ -441,10 +450,9 @@ function Enroll() {
   // COURSE ERROR
   // =====================================================
 
-  if (error && !course) {
+  if (!course) {
     return (
       <div className="container page-padding text-center">
-
         <h2>
           Unable to load checkout
         </h2>
@@ -455,7 +463,8 @@ function Enroll() {
             marginTop: "20px",
           }}
         >
-          {error}
+          {error ||
+            "Course details could not be loaded."}
         </div>
 
         <Link
@@ -468,13 +477,12 @@ function Enroll() {
         >
           ← Back to Course
         </Link>
-
       </div>
     );
   }
 
   // =====================================================
-  // MAIN CHECKOUT UI
+  // MAIN CHECKOUT
   // =====================================================
 
   return (
@@ -538,9 +546,7 @@ function Enroll() {
               type="text"
               name="name"
               value={cardData.name}
-              onChange={
-                handleInputChange
-              }
+              onChange={handleInputChange}
               placeholder="Your Name"
             />
 
@@ -556,9 +562,7 @@ function Enroll() {
               type="email"
               name="email"
               value={cardData.email}
-              onChange={
-                handleInputChange
-              }
+              onChange={handleInputChange}
               placeholder="your@email.com"
             />
 
@@ -586,9 +590,7 @@ function Enroll() {
                   : ""
               }`}
               onClick={() =>
-                setPaymentMethod(
-                  "card"
-                )
+                setPaymentMethod("card")
               }
             >
               💳 Credit/Debit Card
@@ -604,9 +606,7 @@ function Enroll() {
                   : ""
               }`}
               onClick={() =>
-                setPaymentMethod(
-                  "upi"
-                )
+                setPaymentMethod("upi")
               }
             >
               📱 UPI / QR

@@ -1,10 +1,24 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config";
 
 function MyCourses() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+
+  // Retrieve token from possible keys used across app
+  const authToken =
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("access") ||
+    localStorage.getItem("token");
+
+  // If no token, redirect to login
+  useEffect(() => {
+    if (!authToken) {
+      navigate("/login");
+    }
+  }, [authToken, navigate]);
 
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,16 +30,12 @@ function MyCourses() {
         setLoading(true);
         setError("");
 
-        const token =
-          localStorage.getItem("access_token") ||
-          localStorage.getItem("access") ||
-          localStorage.getItem("token");
+        const token = authToken;
 
         if (!token) {
-          throw new Error(
-            "Login session not found. Please login again."
-          );
-        }
+  // No token, abort loading
+  return;
+}
 
         const response = await fetch(
           `${API_BASE_URL}/api/enrollments/`,
