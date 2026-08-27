@@ -16,33 +16,48 @@ function MyCourses() {
         setLoading(true);
         setError("");
 
-        // IMPORTANT:
-        // Correct backend API path
+        const token =
+          localStorage.getItem("access_token") ||
+          localStorage.getItem("access") ||
+          localStorage.getItem("token");
+
+        if (!token) {
+          throw new Error(
+            "Login session not found. Please login again."
+          );
+        }
+
         const response = await fetch(
           `${API_BASE_URL}/api/enrollments/`,
           {
             method: "GET",
-            credentials: "include",
+
             headers: {
               Accept: "application/json",
+              Authorization: `Bearer ${token}`,
             },
+
+            credentials: "include",
           }
+        );
+
+        console.log(
+          "Enrollment API status:",
+          response.status
         );
 
         const contentType =
           response.headers.get("content-type") || "";
 
-        console.log(
-          "My Courses API status:",
-          response.status
-        );
-
-        // Backend returned HTML
-        if (!contentType.includes("application/json")) {
+        if (
+          !contentType.includes(
+            "application/json"
+          )
+        ) {
           const text = await response.text();
 
           console.error(
-            "My Courses API returned non-JSON:",
+            "Enrollment API returned non-JSON:",
             text
           );
 
@@ -54,49 +69,36 @@ function MyCourses() {
         const data = await response.json();
 
         console.log(
-          "My Courses API response:",
+          "Enrollment API response:",
           data
         );
 
         if (!response.ok) {
-          let message =
-            "Unable to load enrolled courses.";
-
-          if (data?.detail) {
-            message = data.detail;
-          }
-
-          throw new Error(message);
+          throw new Error(
+            data?.detail ||
+              "Unable to load enrolled courses."
+          );
         }
 
-        // ==========================================
-        // Handle different DRF response formats
-        // ==========================================
-
-        let enrollmentList = [];
+        let list = [];
 
         if (Array.isArray(data)) {
-          enrollmentList = data;
-        } else if (Array.isArray(data.results)) {
-          enrollmentList = data.results;
-        } else if (Array.isArray(data.value)) {
-          enrollmentList = data.value;
-        } else if (data && typeof data === "object") {
-          // Sometimes backend may return a single object
-          if (data.id) {
-            enrollmentList = [data];
-          }
+          list = data;
+        } else if (
+          Array.isArray(data.results)
+        ) {
+          list = data.results;
+        } else if (
+          Array.isArray(data.value)
+        ) {
+          list = data.value;
         }
 
-        console.log(
-          "Processed enrollments:",
-          enrollmentList
-        );
+        setEnrollments(list);
 
-        setEnrollments(enrollmentList);
       } catch (err) {
         console.error(
-          "Enrollment loading error:",
+          "My Courses error:",
           err
         );
 
@@ -106,44 +108,40 @@ function MyCourses() {
         );
 
         setEnrollments([]);
+
       } finally {
         setLoading(false);
       }
     };
 
-    // Wait until authentication check is complete
     if (!authLoading) {
       loadEnrollments();
     }
-  }, [authLoading]);
 
-  // ==========================================
-  // AUTH LOADING
-  // ==========================================
+  }, [authLoading]);
 
   if (authLoading || loading) {
     return (
       <div className="container page-padding text-center">
-        <h2>Loading your dashboard...</h2>
+        <h2>
+          Loading your dashboard...
+        </h2>
       </div>
     );
   }
 
-  // ==========================================
-  // MAIN UI
-  // ==========================================
-
   return (
     <div className="container page-padding">
 
-      {/* ======================================
-          DASHBOARD HEADER
-      ====================================== */}
+      {/* HEADER */}
 
       <div className="dashboard-header">
 
         <div>
-          <h1>My Learning Dashboard</h1>
+
+          <h1>
+            My Learning Dashboard
+          </h1>
 
           <p className="subtitle">
             Welcome back,{" "}
@@ -153,6 +151,7 @@ function MyCourses() {
             ! Track your progress and continue
             learning.
           </p>
+
         </div>
 
         <Link
@@ -164,24 +163,24 @@ function MyCourses() {
 
       </div>
 
-      {/* ======================================
-          ERROR
-      ====================================== */}
+      {/* ERROR */}
 
       {error && (
         <div
           className="auth-error"
-          style={{ marginBottom: "20px" }}
+          style={{
+            marginBottom: "20px",
+          }}
         >
           {error}
         </div>
       )}
 
-      {/* ======================================
-          NO ENROLLMENTS
-      ====================================== */}
+      {/* EMPTY */}
 
-      {!error && enrollments.length === 0 ? (
+      {!error &&
+      enrollments.length === 0 ? (
+
         <div className="empty-state">
 
           <div className="empty-icon">
@@ -193,77 +192,70 @@ function MyCourses() {
           </h2>
 
           <p>
-            Explore our library of courses and
-            start learning today.
+            Explore our library of courses
+            and start learning today.
           </p>
 
           <Link
             to="/courses"
             className="btn-primary"
-            style={{ marginTop: "15px" }}
+            style={{
+              marginTop: "15px",
+            }}
           >
             Browse Courses
           </Link>
 
         </div>
+
       ) : (
 
-        /* ======================================
-           ENROLLED COURSES
-        ====================================== */
+        /* COURSES */
 
         <div className="courses-grid">
 
           {enrollments.map((item) => {
 
-            // Backend may return course_details
-            // or course object
             const course =
-              item.course_details ||
-              item.course ||
-              {};
-
-            const courseId =
-              course?.id ||
-              item?.course_id ||
-              item?.course;
+              item.course_details || {};
 
             const progress =
-              Number(item?.progress) || 0;
+              Number(item.progress) || 0;
 
-            const courseTitle =
-              course?.title ||
-              item?.course_title ||
+            const courseId =
+              course.id ||
+              item.course;
+
+            const title =
+              course.title ||
               "Course Title";
 
-            const courseLevel =
-              course?.level ||
-              item?.level ||
-              "Intermediate";
-
-            const courseImage =
-              course?.image ||
+            const image =
+              course.image ||
               "/images/image1.jpg";
 
+            const level =
+              course.level ||
+              "Beginner";
+
             const status =
-              item?.status ||
+              item.status ||
               "active";
 
             return (
+
               <div
                 key={item.id}
                 className="course-card"
               >
 
-                {/* ==================================
-                    COURSE IMAGE
-                ================================== */}
+                {/* IMAGE */}
 
                 <div className="card-media">
 
                   <img
-                    src={courseImage}
-                    alt={courseTitle}
+                    src={image}
+                    alt={title}
                     style={{
                       width: "100%",
                       height: "220px",
@@ -280,28 +272,26 @@ function MyCourses() {
                   <span
                     className={`status-badge ${status}`}
                   >
-                    {String(status).toUpperCase()}
+                    {String(
+                      status
+                    ).toUpperCase()}
                   </span>
 
                 </div>
 
-                {/* ==================================
-                    COURSE BODY
-                ================================== */}
+                {/* BODY */}
 
                 <div className="card-body">
 
                   <span className="category-tag">
-                    {courseLevel}
+                    {level}
                   </span>
 
                   <h3 className="card-title">
-                    {courseTitle}
+                    {title}
                   </h3>
 
-                  {/* ==================================
-                      PROGRESS
-                  ================================== */}
+                  {/* PROGRESS */}
 
                   <div className="progress-section">
 
@@ -338,39 +328,30 @@ function MyCourses() {
 
                   </div>
 
-                  {/* ==================================
-                      COURSE ACTION
-                  ================================== */}
+                  {/* BUTTON */}
 
                   <div className="card-actions">
 
-                    {courseId ? (
-                      <Link
-                        to={`/courses/${courseId}/learn`}
-                        className="btn-primary full-width"
-                      >
-                        {progress > 0
-                          ? "Continue Learning"
-                          : "Start Course"}
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/courses"
-                        className="btn-primary full-width"
-                      >
-                        View Courses
-                      </Link>
-                    )}
+                    <Link
+                      to={`/courses/${courseId}/learn`}
+                      className="btn-primary full-width"
+                    >
+                      {progress > 0
+                        ? "Continue Learning"
+                        : "Start Course"}
+                    </Link>
 
                   </div>
 
                 </div>
 
               </div>
+
             );
           })}
 
         </div>
+
       )}
 
     </div>
